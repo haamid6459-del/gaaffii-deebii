@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="om">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Gaaffii fi Deebii</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f2f5f8;
+  color:#222;
+}
+
+header{
+  background:#075e54;
+  color:white;
+  padding:20px;
+  text-align:center;
+}
+
+header h1{
+  margin:0;
+  font-size:25px;
+}
+
+header p{
+  margin:8px 0 0;
+  font-size:14px;
+}
+
+.container{
+  max-width:700px;
+  margin:auto;
+  padding:20px;
+}
+
+.card{
+  background:white;
+  padding:20px;
+  border-radius:15px;
+  box-shadow:0 3px 12px rgba(0,0,0,.08);
+  margin-bottom:20px;
+}
+
+label{
+  display:block;
+  margin-bottom:7px;
+  font-weight:bold;
+}
+
+select,
+textarea,
+button{
+  width:100%;
+  padding:13px;
+  border-radius:10px;
+  font-size:16px;
+}
+
+select,
+textarea{
+  border:1px solid #ccc;
+  margin-bottom:15px;
+}
+
+textarea{
+  min-height:120px;
+  resize:vertical;
+}
+
+button{
+  border:none;
+  background:#075e54;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#064c44;
+}
+
+#loading{
+  display:none;
+  text-align:center;
+  padding:15px;
+  color:#075e54;
+  font-weight:bold;
+}
+
+.answer{
+  line-height:1.7;
+}
+
+.answer h3{
+  color:#075e54;
+}
+
+.result{
+  border-bottom:1px solid #ddd;
+  padding:15px 0;
+}
+
+.result:last-child{
+  border-bottom:none;
+}
+
+.result a{
+  color:#075e54;
+  font-weight:bold;
+  text-decoration:none;
+  font-size:18px;
+}
+
+.small{
+  color:#666;
+  font-size:14px;
+  margin-top:5px;
+}
+
+footer{
+  text-align:center;
+  padding:20px;
+  color:#777;
+  font-size:13px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🔎 Gaaffii fi Deebii</h1>
+  <p>Gaaffii kee barreessi, odeeffannoo barbaadi</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+
+    <label>🌍 Afaan filadhu</label>
+
+    <select id="language">
+      <option value="om">Afaan Oromoo</option>
+      <option value="am">አማርኛ</option>
+      <option value="en">English</option>
+      <option value="ar">العربية</option>
+      <option value="fr">Français</option>
+      <option value="de">Deutsch</option>
+      <option value="es">Español</option>
+      <option value="sw">Kiswahili</option>
+      <option value="tr">Türkçe</option>
+      <option value="so">Soomaali</option>
+    </select>
+
+    <label>❓ Gaaffii kee</label>
+
+    <textarea
+      id="question"
+      placeholder="Fakkeenya: Salaanni maali?"
+    ></textarea>
+
+    <button onclick="searchQuestion()">
+      🔍 Barbaadi
+    </button>
+
+  </div>
+
+  <div id="loading">
+    ⏳ Mee xiqqoo eegi...
+  </div>
+
+  <div id="answerBox" class="card" style="display:none;">
+    <div id="answer" class="answer"></div>
+  </div>
+
+</div>
+
+<footer>
+  Gaaffii fi Deebii © 2026
+</footer>
+
+
+<script>
+
+async function searchQuestion(){
+
+  const question =
+    document.getElementById("question").value.trim();
+
+  const language =
+    document.getElementById("language").value;
+
+  const answerBox =
+    document.getElementById("answerBox");
+
+  const answer =
+    document.getElementById("answer");
+
+  const loading =
+    document.getElementById("loading");
+
+  if(question === ""){
+    alert("Mee gaaffii kee barreessi.");
+    return;
+  }
+
+  loading.style.display = "block";
+  answerBox.style.display = "none";
+  answer.innerHTML = "";
+
+  try{
+
+    const url =
+      `https://${language}.wikipedia.org/w/api.php` +
+      `?action=query` +
+      `&generator=search` +
+      `&gsrsearch=${encodeURIComponent(question)}` +
+      `&gsrlimit=5` +
+      `&prop=extracts` +
+      `&exintro=1` +
+      `&explaintext=1` +
+      `&format=json` +
+      `&origin=*`;
+
+    const response = await fetch(url);
+
+    const data = await response.json();
+
+    loading.style.display = "none";
+    answerBox.style.display = "block";
+
+    if(!data.query || !data.query.pages){
+
+      answer.innerHTML = `
+        <h3>❌ Bu'aa hin argamne</h3>
+        <p>
+        Gaaffii kee jecha biraatiin irra deebi'ii yaali.
+        </p>
+      `;
+
+      return;
+    }
+
+    const pages = Object.values(data.query.pages);
+
+    let html = `
+      <h3>🔎 Bu'aa barbaachaa</h3>
+      <p>
+        Gaaffii: <b>${escapeHTML(question)}</b>
+      </p>
+    `;
+
+    pages.forEach(page => {
+
+      const title = page.title || "";
+      const extract = page.extract || "";
+
+      const pageUrl =
+        `https://${language}.wikipedia.org/wiki/` +
+        encodeURIComponent(title.replace(/ /g,"_"));
+
+      html += `
+        <div class="result">
+
+          <a href="${pageUrl}" target="_blank">
+            ${escapeHTML(title)}
+          </a>
+
+          <p>
+            ${escapeHTML(extract || "Ibsi gahaan hin argamne.")}
+          </p>
+
+          <div class="small">
+            Wikipedia irraa
+          </div>
+
+        </div>
+      `;
+    });
+
+    answer.innerHTML = html;
+
+  }catch(error){
+
+    loading.style.display = "none";
+    answerBox.style.display = "block";
+
+    answer.innerHTML = `
+      <h3>⚠️ Rakkoo uumame</h3>
+      <p>
+        Internet kee mirkaneessiitii irra deebi'ii yaali.
+      </p>
+    `;
+
+    console.error(error);
+  }
+}
+
+
+function escapeHTML(text){
+
+  return text
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+document
+  .getElementById("question")
+  .addEventListener("keydown", function(event){
+
+    if(event.key === "Enter" && !event.shiftKey){
+      event.preventDefault();
+      searchQuestion();
+    }
+
+  });
+
+</script>
+
+</body>
+    </html>
